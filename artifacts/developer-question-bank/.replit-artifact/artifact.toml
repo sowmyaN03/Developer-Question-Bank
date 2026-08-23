@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Developer Question Bank"
+description = "A dark study workspace for practicing, generating, reviewing, searching, and exporting a curated developer interview question bank sourced from a PDF."
+version = "1.0.0"
+id = "artifacts/developer-question-bank"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 25462
+
+[services.development]
+run = "pnpm --filter @workspace/developer-question-bank run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/developer-question-bank", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/developer-question-bank/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "25462"
+BASE_PATH = "/"

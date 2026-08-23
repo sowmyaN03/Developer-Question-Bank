@@ -1,6 +1,6 @@
-# [Project name]
+# DevBank
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+DevBank turns a large, mixed-format developer interview PDF into a searchable, deduplicated study workspace.
 
 ## Run & Operate
 
@@ -22,15 +22,19 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/developer-question-bank/src/App.tsx` — app shell, routes, quiz flows, local progress, and export.
+- `artifacts/developer-question-bank/src/questions.json` — generated question bank with verified and review queues.
+- `.agents/scripts/extract_questions.py` — repeatable PDF extraction and deduplication script.
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Complete answerable multiple-choice records are the library source of truth; malformed and single-answer records remain in Needs review.
+- Quiz state and attempt history are local-first so the workspace works without an account or network.
+- Subject-wise PDF export is generated as a separate print document to include every verified question and its exact keyed answer.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Search, filter, practice, generate capped 30-question exams, review repeated and incomplete source items, track progress, and export subject-wise study PDFs.
 
 ## User preferences
 
