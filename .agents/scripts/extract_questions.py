@@ -1,8 +1,9 @@
-import fitz, re, json, hashlib
-pdf='attached_source.pdf'; doc=fitz.open(pdf)
-text='\n'.join(p.get_text('text') for p in doc)
+import re, json, hashlib, subprocess
+pdf='attached_source.pdf'
+text=subprocess.check_output(['pdftotext','-layout',pdf,'-'], text=True, errors='replace')
+source_pages=772
 lines=[re.sub(r'\s+',' ',x).strip() for x in text.splitlines()]
-records=[]; aliases=[('JAVA SPRING','Java Spring'),('CORE JAVA','Core Java'),('SPRING BOOT','Spring Boot'),('MONGODB','MongoDB'),('JAVASCRIPT','JavaScript'),('ANGULAR','Angular'),('REACT','React'),('SERVLETS','Servlets'),('JSP','JSP'),('HIBERNATE','Hibernate'),('SPRING','Spring')]
+records=[]; aliases=[('HTML','HTML & CSS'),('CSS','HTML & CSS'),('TYPESCRIPT','TypeScript'),('FRONTEND','Frontend'),('JAVA SPRING','Java Spring'),('CORE JAVA','Core Java'),('SPRING BOOT','Spring Boot'),('MONGODB','MongoDB'),('JAVASCRIPT','JavaScript'),('ANGULAR','Angular'),('REACT','React'),('SERVLETS','Servlets'),('JSP','JSP'),('HIBERNATE','Hibernate'),('SPRING','Spring')]
 starts=[i for i,l in enumerate(lines) if re.match(r'^(?:Question\s*:\s*\d+|\d{1,4}[.)]\s+)',l,re.I)]
 def clean(s): return re.sub(r'\s+',' ',s).strip(' -:')
 for ix,i in enumerate(starts):
@@ -40,18 +41,10 @@ for ix,i in enumerate(starts):
     explanation=desc if desc and desc.lower()!='none' else ('This item is retained for review because the source does not provide a complete, unambiguous multiple-choice record.' if not verified else f'The keyed answer is option {chr(65+ans)}. Review the underlying {sub} concept and source context for deeper understanding.')
     norm=re.sub(r'[^a-z0-9 ]','',qtext.lower())
     records.append({'id':'src-'+hashlib.sha1(norm.encode()).hexdigest()[:10],'subject':sub,'topic':sub,'text':qtext,'options':opts[:4],'correctAnswer':ans if ans is not None and ans<len(opts) else 0,'explanation':explanation,'verified':verified,'duplicateCount':1,'sourceRefs':['Imported PDF'],'sourceQuestion':first})
-by={}
-for r in records:
-    k=re.sub(r'\W','',r['text'].lower())
-    if k in by:
-        by[k]['duplicateCount']+=1; by[k]['sourceRefs'].append('Repeated source item')
-        if not by[k]['verified'] and r['verified']:
-            by[k].update({x:r[x] for x in ['options','correctAnswer','explanation','verified']})
-    else: by[k]=r
-all_records=list(by.values())
+all_records=records
 for r in all_records:
     if r['subject']=='General': r['subject']='Core Java'
 verified=[r for r in all_records if r['verified'] and len(r['options'])>=2]
 unverified=[r for r in all_records if not (r['verified'] and len(r['options'])>=2)]
-with open('artifacts/developer-question-bank/public/data/questions.json','w') as f: json.dump({'questions':verified,'unverified':unverified,'meta':{'sourcePages':len(doc),'rawItems':len(records),'dedupedItems':len(all_records),'verifiedItems':len(verified),'unverifiedItems':len(unverified),'angularExcluded':True}},f,ensure_ascii=False)
+with open('artifacts/developer-question-bank/src/questions.json','w') as f: json.dump({'questions':all_records,'unverified':unverified,'meta':{'sourcePages':source_pages,'rawItems':len(records),'dedupedItems':len(all_records),'verifiedItems':len(verified),'unverifiedItems':len(unverified),'angularExcluded':True}},f,ensure_ascii=False)
 print(json.dumps({'raw':len(records),'deduped':len(all_records),'verified':len(verified),'unverified':len(unverified),'subjects':sorted(set(r['subject'] for r in all_records))},indent=2))
