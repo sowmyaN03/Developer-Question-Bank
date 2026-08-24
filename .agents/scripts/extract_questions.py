@@ -6,6 +6,20 @@ lines=[re.sub(r'\s+',' ',x).strip() for x in text.splitlines()]
 records=[]; aliases=[('HTML','HTML & CSS'),('CSS','HTML & CSS'),('TYPESCRIPT','TypeScript'),('FRONTEND','Frontend'),('JAVA SPRING','Java Spring'),('CORE JAVA','Core Java'),('SPRING BOOT','Spring Boot'),('MONGODB','MongoDB'),('JAVASCRIPT','JavaScript'),('ANGULAR','Angular'),('REACT','React'),('SERVLETS','Servlets'),('JSP','JSP'),('HIBERNATE','Hibernate'),('SPRING','Spring')]
 starts=[i for i,l in enumerate(lines) if re.match(r'^(?:Question\s*:\s*\d+|\d{1,4}[.)]\s+)',l,re.I)]
 def clean(s): return re.sub(r'\s+',' ',s).strip(' -:')
+def infer_topic(subject, text):
+    value=text.lower()
+    topic_rules={
+        'HTML & CSS': [('flex','Flexbox'),('grid','CSS Grid'),('selector','Selectors'),('form','Forms'),('semantic','Semantic HTML'),('responsive','Responsive Design'),('box model','Box Model'),('css','CSS Fundamentals'),('html','HTML Fundamentals')],
+        'JavaScript': [('promise','Promises'),('async','Async & Await'),('closure','Closures'),('prototype','Prototypes'),('event','Events'),('array','Arrays'),('object','Objects'),('function','Functions'),('dom','DOM')],
+        'TypeScript': [('generic','Generics'),('interface','Interfaces'),('type','Types'),('decorator','Decorators'),('enum','Enums'),('class','Classes')],
+        'React': [('hook','Hooks'),('context','Context'),('component','Components'),('state','State'),('effect','Effects'),('render','Rendering'),('router','Routing')],
+        'Spring': [('security','Spring Security'),('mvc','Spring MVC'),('bean','Beans & IoC'),('boot','Spring Boot'),('data','Spring Data'),('transaction','Transactions')],
+        'Core Java': [('thread','Threads & Concurrency'),('collection','Collections'),('exception','Exceptions'),('stream','Streams'),('inherit','Inheritance'),('interface','Interfaces'),('string','Strings'),('oop','OOP')],
+        'MongoDB': [('query','Queries'),('index','Indexes'),('aggregate','Aggregation'),('replica','Replication'),('schema','Schema Design')],
+    }
+    for needle,label in topic_rules.get(subject, []):
+        if needle in value: return label
+    return f'{subject} Fundamentals'
 for ix,i in enumerate(starts):
     end=starts[ix+1] if ix+1<len(starts) else min(len(lines),i+80); block=lines[i:end]; first=block[0]
     m=re.match(r'^Question\s*:\s*(\d+)\s*(.*)$',first,re.I); qtext=m.group(2) if m else re.sub(r'^\d{1,4}[.)]\s*','',first)
@@ -36,11 +50,11 @@ for ix,i in enumerate(starts):
         for j,o in enumerate(opts):
             if ans_text.lower() in o.lower() or o.lower() in ans_text.lower(): ans=j; break
     verified=len(opts)>=2 and ans is not None and ans < len(opts)
-    if not opts and ans_text: opts=[ans_text]
+    if not opts: opts=[ans_text or 'Source record has no answer options; review the explanation after marking this item.']
     desc=next((b.split(':',1)[1].strip() for b in block if b.lower().startswith('description:')), '')
-    explanation=desc if desc and desc.lower()!='none' else ('This item is retained for review because the source does not provide a complete, unambiguous multiple-choice record.' if not verified else f'The keyed answer is option {chr(65+ans)}. Review the underlying {sub} concept and source context for deeper understanding.')
+    explanation=desc if desc and desc.lower()!='none' else ('This item is retained for review because the source does not provide a complete, unambiguous multiple-choice record. Use the source context and this topic label to validate the answer.' if not verified else f'The keyed answer is option {chr(65+ans)}. Review the underlying {sub} concept and source context for deeper understanding.')
     norm=re.sub(r'[^a-z0-9 ]','',qtext.lower())
-    records.append({'id':'src-'+hashlib.sha1(norm.encode()).hexdigest()[:10],'subject':sub,'topic':sub,'text':qtext,'options':opts[:4],'correctAnswer':ans if ans is not None and ans<len(opts) else 0,'explanation':explanation,'verified':verified,'duplicateCount':1,'sourceRefs':['Imported PDF'],'sourceQuestion':first})
+    records.append({'id':'src-'+hashlib.sha1((norm+str(ix)).encode()).hexdigest()[:10],'subject':sub,'topic':infer_topic(sub,qtext),'text':qtext,'options':opts[:4],'correctAnswer':ans if ans is not None and ans<len(opts) else 0,'explanation':explanation or f'Review this {infer_topic(sub,qtext)} concept and compare the keyed answer with the source material.','verified':verified,'duplicateCount':1,'sourceRefs':['Imported PDF'],'sourceQuestion':first})
 all_records=records
 for r in all_records:
     if r['subject']=='General': r['subject']='Core Java'
